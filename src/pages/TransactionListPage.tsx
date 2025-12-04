@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Filter } from "lucide-react";
+import { ArrowLeft, Filter, Edit } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,13 +12,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  getStatements,
-  getTransactions,
+  getTransactionsByDateRange,
   type Transaction,
   updateTransaction,
 } from "@/lib/api";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { useTimePeriod } from "@/hooks/useTimePeriod";
+import { EditTransactionDialog } from "@/components/EditTransactionDialog";
 
 export default function TransactionListPage() {
   const navigate = useNavigate();
@@ -32,27 +32,28 @@ export default function TransactionListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
 
   useEffect(() => {
     loadTransactions();
-  }, []);
+  }, [month, year]);
 
   useEffect(() => {
     filterTransactions();
-  }, [transactions, filterType, searchQuery, month, year]);
+  }, [transactions, filterType, searchQuery]);
 
   const loadTransactions = async () => {
     try {
       setIsLoading(true);
-      const statements = await getStatements();
-      let allTransactions: Transaction[] = [];
 
-      for (const stmt of statements) {
-        if (stmt.status === "parsed") {
-          const txs = await getTransactions(stmt.id);
-          allTransactions = [...allTransactions, ...txs];
-        }
-      }
+      const startDate = new Date(year, month - 1, 1).toISOString();
+      const endDate = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+
+      const allTransactions = await getTransactionsByDateRange(
+        startDate,
+        endDate
+      );
 
       // Sort by date desc
       allTransactions.sort(
@@ -69,11 +70,7 @@ export default function TransactionListPage() {
   const filterTransactions = () => {
     let result = [...transactions];
 
-    // Filter by Month/Year (month from URL is 1-12, need to convert to 0-11 for Date)
-    result = result.filter((t) => {
-      const d = new Date(t.date);
-      return d.getMonth() === month - 1 && d.getFullYear() === year;
-    });
+    // Date filtering is handled by API now
 
     if (filterType !== "all") {
       result = result.filter((t) => t.type === filterType);
@@ -92,21 +89,22 @@ export default function TransactionListPage() {
     setFilteredTransactions(result);
   };
 
-  const handleTypeChange = async (
-    transactionId: string,
-    newType: "expense" | "income" | "transfer"
-  ) => {
+  const handleSaveTransaction = async (updatedTransaction: Transaction) => {
+    if (!updatedTransaction.id) return;
     try {
+      await updateTransaction(updatedTransaction.id, updatedTransaction);
+
       // Optimistic update
       setTransactions((prev) =>
-        prev.map((t) => (t.id === transactionId ? { ...t, type: newType } : t))
+        prev.map((t) =>
+          t.id === updatedTransaction.id ? updatedTransaction : t
+        )
       );
 
-      await updateTransaction(transactionId, { type: newType });
+      setEditingTransaction(null);
     } catch (error) {
-      console.error("Failed to update transaction type:", error);
-      // Revert on error (could be improved with better state management)
-      loadTransactions();
+      console.error("Failed to update transaction:", error);
+      loadTransactions(); // Revert on error
     }
   };
 
@@ -132,19 +130,21 @@ export default function TransactionListPage() {
             </Button>
             <div>
               <h1 className="text-3xl font-bold tracking-tight">
-                Transactions
+                Audit Transactions
               </h1>
               <p className="text-muted-foreground">
-                Manage and categorize your transactions
+                Review and edit transaction details
               </p>
             </div>
           </div>
-          <MonthYearPicker
-            selectedMonth={month - 1}
-            selectedYear={year}
-            onMonthChange={(m) => setTimePeriod(m + 1, year)}
-            onYearChange={(y) => setTimePeriod(month, y)}
-          />
+          <div className="flex items-center gap-2">
+            <MonthYearPicker
+              selectedMonth={month - 1}
+              selectedYear={year}
+              onMonthChange={(m) => setTimePeriod(m + 1, year)}
+              onYearChange={(y) => setTimePeriod(month, y)}
+            />
+          </div>
         </header>
 
         <Card>
@@ -204,32 +204,8 @@ export default function TransactionListPage() {
                     </div>
 
                     <div className="flex items-center gap-4 justify-between md:justify-end">
-                      <Select
-                        value={t.type}
-                        onValueChange={(val: any) =>
-                          handleTypeChange(t.id!, val)
-                        }
-                      >
-                        <SelectTrigger
-                          className={`w-[110px] h-8 text-xs ${
-                            t.type === "income"
-                              ? "text-green-600 border-green-200 bg-green-50"
-                              : t.type === "expense"
-                              ? "text-red-600 border-red-200 bg-red-50"
-                              : "text-blue-600 border-blue-200 bg-blue-50"
-                          }`}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="expense">Expense</SelectItem>
-                          <SelectItem value="income">Income</SelectItem>
-                          <SelectItem value="transfer">Transfer</SelectItem>
-                        </SelectContent>
-                      </Select>
-
                       <div
-                        className={`font-medium w-[120px] text-right hidden md:block ${
+                        className={`font-medium min-w-[140px] whitespace-nowrap text-right hidden md:block ${
                           t.type === "income"
                             ? "text-green-600"
                             : t.type === "expense"
@@ -240,6 +216,14 @@ export default function TransactionListPage() {
                         {t.type === "income" ? "+" : "-"}
                         {formatCurrency(t.amount)}
                       </div>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingTransaction(t)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -247,6 +231,13 @@ export default function TransactionListPage() {
             )}
           </CardContent>
         </Card>
+
+        <EditTransactionDialog
+          open={!!editingTransaction}
+          onOpenChange={(open) => !open && setEditingTransaction(null)}
+          transaction={editingTransaction}
+          onSave={handleSaveTransaction}
+        />
       </div>
     </div>
   );

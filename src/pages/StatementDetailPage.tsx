@@ -15,31 +15,19 @@ import ResultsDisplay from "@/components/ResultsDisplay";
 import {
   getStatement,
   getTransactions,
-  saveTransactions,
   updateStatementStatus,
   updateTransactions,
   saveEnrichmentLog,
   getEnrichmentLogs,
+  uploadStatementFile,
+  processStatement,
   type Statement,
   type Transaction,
   type EnrichmentLog,
 } from "@/lib/api";
+import { supabase } from "@/lib/supabaseClient";
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
-
-const EXTRACTION_PROMPT = `Extract ALL transactions from the bank statement image. For each transaction, extract the following fields:
-
-- date: Transaction date (YYYY-MM-DD format)
-- amount: Transaction amount (numeric value only, without currency symbol)
-- currency: Currency code (e.g., IDR, USD)
-- merchant: Merchant or business name (e.g., "Grab", "Tokopedia", "Starbucks", etc.). Extract the actual merchant/vendor name if visible, otherwise use null
-- transaction_name: Name/description of the transaction
-- reference_id: Reference or transaction ID (null if not available)
-- category: Transaction category (e.g., Food, Transport, Shopping, etc.)
-- type: Transaction type - "expense" for debit transactions (contains 'DB' or represents money going out), "income" for credit transactions (contains 'CR' or represents money coming in), or "transfer" for internal transfers (e.g. credit card payments, moving money between own accounts)
-- notes: Additional notes or details about the transaction
-
-Return the result as a JSON array of transaction objects. Ensure all transactions are captured from the statement.`;
 
 function StatementDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -63,6 +51,44 @@ function StatementDetailPage() {
   useEffect(() => {
     if (id) {
       loadStatementData();
+
+      // Subscribe to realtime updates
+      const channel = supabase
+        .channel(`statement-${id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "statements",
+            filter: `id=eq.${id}`,
+          },
+          (payload) => {
+            const newStatus = payload.new.status;
+            if (newStatus === "parsed") {
+              loadStatementData();
+              showAlert("Statement parsed successfully!", {
+                variant: "success",
+              });
+            } else if (newStatus === "failed") {
+              setStatement((prev) =>
+                prev ? { ...prev, status: "failed" } : null
+              );
+              showAlert("Failed to parse statement", {
+                variant: "destructive",
+              });
+            } else if (newStatus === "processing") {
+              setStatement((prev) =>
+                prev ? { ...prev, status: "processing" } : null
+              );
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [id]);
 
@@ -112,75 +138,30 @@ function StatementDetailPage() {
       return;
     }
 
-    if (!GEMINI_API_KEY) {
-      showAlert("Please set VITE_GEMINI_API_KEY in your .env.local file", {
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsParsing(true);
 
     try {
-      const statementBase64 = await fileToBase64(statementFile);
+      // 1. Upload file
+      await uploadStatementFile(id, statementFile);
 
-      const parts: any[] = [
-        { text: EXTRACTION_PROMPT },
-        {
-          inline_data: {
-            mime_type: statementBase64.mimeType,
-            data: statementBase64.data,
-          },
-        },
-      ];
+      // 2. Update status to processing (Optimistic UI)
+      await updateStatementStatus(id, "processing");
+      setStatement((prev) => (prev ? { ...prev, status: "processing" } : null));
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [{ parts }],
-          }),
-        }
-      );
+      // 3. Trigger background processing
+      await processStatement(id);
 
-      const data = await response.json();
-      const responseText =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response text";
-
-      let parsedData: Transaction[] = [];
-      try {
-        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          parsedData = JSON.parse(jsonMatch[0]);
-        }
-      } catch (e) {
-        console.warn("Could not parse JSON from response", e);
-        throw new Error("Failed to parse transactions from Gemini response");
-      }
-
-      if (parsedData.length === 0) {
-        throw new Error("No transactions found in the statement");
-      }
-
-      // Save to database
-      await saveTransactions(id, parsedData);
-      await updateStatementStatus(id, "parsed");
-
-      // Reload data
-      await loadStatementData();
-
-      showAlert(`Successfully parsed ${parsedData.length} transactions!`, {
-        variant: "success",
+      showAlert("Processing started. You can leave this page.", {
+        variant: "default",
       });
     } catch (error: any) {
-      console.error("Error parsing statement:", error);
-      showAlert("Error parsing statement: " + error.message, {
+      console.error("Error starting processing:", error);
+      showAlert("Error starting processing: " + error.message, {
         variant: "destructive",
       });
+      // Revert status if failed immediately
+      await updateStatementStatus(id, "failed");
+      setStatement((prev) => (prev ? { ...prev, status: "failed" } : null));
     } finally {
       setIsParsing(false);
     }
@@ -351,15 +332,25 @@ If no transactions can be enriched, return:
               className={`font-medium ${
                 statement.status === "parsed"
                   ? "text-green-600"
+                  : statement.status === "processing"
+                  ? "text-blue-600"
+                  : statement.status === "failed"
+                  ? "text-red-600"
                   : "text-yellow-600"
               }`}
             >
-              {statement.status === "parsed" ? "Parsed" : "Draft"}
+              {statement.status === "parsed"
+                ? "Parsed"
+                : statement.status === "processing"
+                ? "Processing..."
+                : statement.status === "failed"
+                ? "Failed"
+                : "Draft"}
             </span>
           </p>
         </header>
 
-        {statement.status === "draft" ? (
+        {statement.status === "draft" || statement.status === "failed" ? (
           <div className="space-y-6">
             <FileUploader
               label="Bank Statement"
@@ -376,13 +367,28 @@ If no transactions can be enriched, return:
               {isParsing ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Parsing Statement...
+                  Starting Processing...
                 </>
+              ) : statement.status === "failed" ? (
+                "Retry Parsing"
               ) : (
                 "Parse Statement"
               )}
             </Button>
           </div>
+        ) : statement.status === "processing" ? (
+          <Card className="bg-background/60 backdrop-blur-sm">
+            <CardContent className="py-12 text-center">
+              <Loader2 className="h-16 w-16 mx-auto text-primary animate-spin mb-4" />
+              <h3 className="text-xl font-semibold mb-2">
+                Processing Statement...
+              </h3>
+              <p className="text-muted-foreground">
+                This may take a few moments. You can navigate away and come back
+                later.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           <div className="space-y-8">
             <ResultsDisplay results={transactions} isLoading={false} />

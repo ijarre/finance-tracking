@@ -7,12 +7,12 @@ export interface Statement {
   updated_at: string;
   parsed_at: string | null;
   bank_statement_url: string | null;
-  status: 'draft' | 'parsed';
+  status: 'draft' | 'processing' | 'parsed' | 'failed';
 }
 
 export interface Transaction {
   id?: string;
-  statement_id?: string;
+  statement_id?: string | null;
   date: string;
   amount: number;
   currency: string;
@@ -24,6 +24,21 @@ export interface Transaction {
   notes: string;
   created_at?: string;
   updated_at?: string;
+  source?: 'statement' | 'receipt';
+  external_id?: string | null;
+  match_id?: string | null;
+  status?: 'pending' | 'verified' | 'duplicate';
+  fingerprint?: string;
+}
+
+// Helper to generate MD5 fingerprint
+async function generateFingerprint(t: Transaction): Promise<string> {
+  const data = `${t.date}|${t.amount}|${t.transaction_name}`;
+  const msgBuffer = new TextEncoder().encode(data);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer); // Using SHA-256 as it is standard in Web Crypto
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
 }
 
 export interface EnrichmentLog {
@@ -68,7 +83,7 @@ export async function getStatement(id: string): Promise<Statement> {
 
 export async function updateStatementStatus(
   id: string,
-  status: 'draft' | 'parsed'
+  status: 'draft' | 'processing' | 'parsed' | 'failed'
 ): Promise<void> {
   const updates: any = { status, updated_at: new Date().toISOString() };
   
@@ -108,6 +123,39 @@ export async function deleteStatement(id: string): Promise<void> {
     .eq('id', id);
 
   if (error) throw error;
+  if (error) throw error;
+}
+
+export async function uploadStatementFile(
+  statementId: string,
+  file: File
+): Promise<string> {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${statementId}/${Date.now()}.${fileExt}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('statements')
+    .upload(fileName, file);
+
+  if (uploadError) throw uploadError;
+
+  // Update statement with file URL
+  const { error: updateError } = await supabase
+    .from('statements')
+    .update({ bank_statement_url: fileName })
+    .eq('id', statementId);
+
+  if (updateError) throw updateError;
+
+  return fileName;
+}
+
+export async function processStatement(statementId: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('process-statement', {
+    body: { statement_id: statementId },
+  });
+
+  if (error) throw error;
 }
 
 // Transaction Operations
@@ -115,14 +163,37 @@ export async function saveTransactions(
   statementId: string,
   transactions: Transaction[]
 ): Promise<void> {
-  const transactionsWithStatementId = transactions.map(t => ({
+  // 1. Generate fingerprints
+  const transactionsWithFingerprints = await Promise.all(transactions.map(async t => ({
     ...t,
     statement_id: statementId,
-  }));
+    source: 'statement' as const,
+    fingerprint: await generateFingerprint(t)
+  })));
 
+  // 2. Check for duplicates
+  const fingerprints = transactionsWithFingerprints.map(t => t.fingerprint);
+  
+  // Supabase 'in' query has a limit, so we might need to batch if too many. 
+  // For now assuming typical statement size (<1000) it should be fine or we can chunk it.
+  const { data: existing } = await supabase
+    .from('transactions')
+    .select('fingerprint')
+    .in('fingerprint', fingerprints);
+
+  const existingFingerprints = new Set(existing?.map(e => e.fingerprint));
+
+  // 3. Filter out duplicates
+  const newTransactions = transactionsWithFingerprints.filter(t => !existingFingerprints.has(t.fingerprint));
+
+  if (newTransactions.length === 0) {
+    return; // All duplicates
+  }
+
+  // 4. Insert new transactions
   const { error } = await supabase
     .from('transactions')
-    .insert(transactionsWithStatementId);
+    .insert(newTransactions);
 
   if (error) throw error;
 }
@@ -133,6 +204,22 @@ export async function getTransactions(statementId: string): Promise<Transaction[
     .select('*')
     .eq('statement_id', statementId)
     .order('date', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getTransactionsByDateRange(
+  startDate: string,
+  endDate: string
+): Promise<Transaction[]> {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .gte('date', startDate)
+    .lte('date', endDate)
+    .neq('status', 'duplicate') // Exclude duplicates
+    .order('date', { ascending: false });
 
   if (error) throw error;
   return data || [];
@@ -181,4 +268,36 @@ export async function getEnrichmentLogs(statementId: string): Promise<Enrichment
 
   if (error) throw error;
   return data || [];
+}
+
+export async function getDuplicateTransactions(): Promise<Transaction[]> {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('status', 'duplicate')
+    .order('date', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getTransactionsByIds(ids: string[]): Promise<Transaction[]> {
+  if (ids.length === 0) return [];
+  
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .in('id', ids);
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function deleteTransaction(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('transactions')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
 }

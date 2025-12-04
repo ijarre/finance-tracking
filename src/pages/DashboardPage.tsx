@@ -6,10 +6,20 @@ import {
   Wallet,
   FileText,
   List,
+  Filter,
+  AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getStatements, getTransactions, type Transaction } from "@/lib/api";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getTransactionsByDateRange, type Transaction } from "@/lib/api";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { useTimePeriod } from "@/hooks/useTimePeriod";
 
@@ -20,36 +30,34 @@ export default function DashboardPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<
+    Transaction[]
+  >([]);
   const [summary, setSummary] = useState({
     income: 0,
     expense: 0,
     balance: 0,
   });
-  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>(
-    []
-  );
+  const [filterType, setFilterType] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [month, year]);
 
   useEffect(() => {
     calculateSummary();
-  }, [allTransactions, month, year]);
+    filterTransactions();
+  }, [allTransactions, filterType, searchQuery]);
 
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const statements = await getStatements();
-      let transactions: Transaction[] = [];
 
-      for (const stmt of statements) {
-        if (stmt.status === "parsed") {
-          const txs = await getTransactions(stmt.id);
-          transactions = [...transactions, ...txs];
-        }
-      }
+      const startDate = new Date(year, month - 1, 1).toISOString();
+      const endDate = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
 
+      const transactions = await getTransactionsByDateRange(startDate, endDate);
       setAllTransactions(transactions);
     } catch (error) {
       console.error("Error loading dashboard:", error);
@@ -62,13 +70,7 @@ export default function DashboardPage() {
     let income = 0;
     let expense = 0;
 
-    // Filter by selected month and year (month from URL is 1-12, need to convert to 0-11 for Date)
-    const filtered = allTransactions.filter((t) => {
-      const d = new Date(t.date);
-      return d.getMonth() === month - 1 && d.getFullYear() === year;
-    });
-
-    filtered.forEach((t) => {
+    allTransactions.forEach((t) => {
       if (t.type === "income") {
         income += t.amount;
       } else if (t.type === "expense") {
@@ -76,17 +78,36 @@ export default function DashboardPage() {
       }
     });
 
-    // Sort by date desc
-    filtered.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-
     setSummary({
       income,
       expense,
       balance: income - expense,
     });
-    setRecentTransactions(filtered.slice(0, 5));
+  };
+
+  const filterTransactions = () => {
+    let result = [...allTransactions];
+
+    if (filterType !== "all") {
+      result = result.filter((t) => t.type === filterType);
+    }
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.transaction_name.toLowerCase().includes(query) ||
+          t.category.toLowerCase().includes(query) ||
+          (t.notes && t.notes.toLowerCase().includes(query))
+      );
+    }
+
+    // Sort by date desc
+    result.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    setFilteredTransactions(result);
   };
 
   const formatCurrency = (amount: number) => {
@@ -113,6 +134,14 @@ export default function DashboardPage() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
+                onClick={() => navigate("/duplicates")}
+                className="gap-2"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                Manage Duplicates
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() =>
                   navigate("/statements" + getTimePeriodSearchParams())
                 }
@@ -126,7 +155,7 @@ export default function DashboardPage() {
                 }
               >
                 <List className="mr-2 h-4 w-4" />
-                All Transactions
+                Audit Transactions
               </Button>
             </div>
             <MonthYearPicker
@@ -139,6 +168,7 @@ export default function DashboardPage() {
         </header>
 
         <div className="grid gap-4 md:grid-cols-3">
+          {/* Summary Cards (Unchanged) */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -197,24 +227,48 @@ export default function DashboardPage() {
 
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>
-              Recent Transactions (
-              {new Date(year, month - 1).toLocaleString("default", {
-                month: "long",
-              })}
-              )
-            </CardTitle>
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+              <CardTitle>
+                Transactions (
+                {new Date(year, month - 1).toLocaleString("default", {
+                  month: "long",
+                })}
+                )
+              </CardTitle>
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Filter by type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="expense">Expense</SelectItem>
+                      <SelectItem value="income">Income</SelectItem>
+                      <SelectItem value="transfer">Transfer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Input
+                  placeholder="Search..."
+                  className="max-w-xs"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="text-center py-4">Loading...</div>
-            ) : recentTransactions.length === 0 ? (
+            ) : filteredTransactions.length === 0 ? (
               <div className="text-center py-4 text-muted-foreground">
                 No transactions found for this period.
               </div>
             ) : (
               <div className="space-y-4">
-                {recentTransactions.map((t) => (
+                {filteredTransactions.map((t) => (
                   <div
                     key={t.id}
                     className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
@@ -233,7 +287,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     <div
-                      className={`font-medium ${
+                      className={`font-medium whitespace-nowrap ${
                         t.type === "income"
                           ? "text-green-600"
                           : t.type === "expense"

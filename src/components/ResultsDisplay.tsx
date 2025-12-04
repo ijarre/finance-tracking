@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  ExternalLink,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -21,6 +27,7 @@ import {
 } from "@/components/ui/table";
 
 interface Transaction {
+  id?: string;
   date: string;
   amount: string | number;
   currency: string;
@@ -30,6 +37,7 @@ interface Transaction {
   category: string;
   type: "expense" | "income" | "transfer";
   notes: string;
+  status?: "pending" | "verified" | "duplicate";
 }
 
 interface ResultsDisplayProps {
@@ -275,6 +283,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 <TableHead>Reference ID</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -283,14 +292,20 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 const hasNotes =
                   transaction.notes && transaction.notes.trim().length > 0;
 
+                const isDuplicate = transaction.status === "duplicate";
+
                 return (
                   <React.Fragment key={index}>
                     <TableRow
-                      className={
+                      className={`${
                         hasNotes
                           ? "cursor-pointer hover:bg-muted/50 transition-colors"
                           : ""
-                      }
+                      } ${
+                        isDuplicate
+                          ? "bg-yellow-500/5 hover:bg-yellow-500/10"
+                          : ""
+                      }`}
                       onClick={() => hasNotes && toggleRow(index)}
                     >
                       <TableCell>
@@ -312,7 +327,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                       <TableCell className="font-mono text-sm">
                         {transaction.date}
                       </TableCell>
-                      <TableCell className="font-mono text-sm text-right">
+                      <TableCell className="font-mono text-sm text-right whitespace-nowrap">
                         {formatAmount(transaction.amount, transaction.currency)}
                       </TableCell>
                       <TableCell className="text-sm font-medium">
@@ -337,15 +352,37 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                           {transaction.type}
                         </span>
                       </TableCell>
+
                       <TableCell className="text-sm">
                         <span className="px-2 py-1 rounded-md bg-primary/10 text-primary text-xs">
                           {transaction.category}
                         </span>
                       </TableCell>
+                      <TableCell className="text-sm">
+                        {isDuplicate ? (
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-600 text-xs font-medium flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              Duplicate
+                            </span>
+                            <Link
+                              to="/duplicates"
+                              className="text-xs text-muted-foreground hover:text-primary flex items-center gap-0.5"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Manage <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          </div>
+                        ) : (
+                          <span className="px-2 py-1 rounded-md bg-green-500/10 text-green-600 text-xs font-medium">
+                            Verified
+                          </span>
+                        )}
+                      </TableCell>
                     </TableRow>
                     {hasNotes && isExpanded && (
                       <TableRow>
-                        <TableCell colSpan={8} className="bg-muted/50 p-4">
+                        <TableCell colSpan={9} className="bg-muted/50 p-4">
                           <div className="space-y-2">
                             <p className="text-xs font-semibold text-muted-foreground uppercase">
                               Notes
