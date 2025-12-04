@@ -50,9 +50,12 @@ export interface EnrichmentLog {
 
 // Statement Operations
 export async function createStatement(name: string): Promise<Statement> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
   const { data, error } = await supabase
     .from('statements')
-    .insert({ name })
+    .insert({ name, user_id: user.id })
     .select()
     .single();
 
@@ -164,9 +167,13 @@ export async function saveTransactions(
   transactions: Transaction[]
 ): Promise<void> {
   // 1. Generate fingerprints
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
   const transactionsWithFingerprints = await Promise.all(transactions.map(async t => ({
     ...t,
     statement_id: statementId,
+    user_id: user.id,
     source: 'statement' as const,
     fingerprint: await generateFingerprint(t)
   })));
@@ -252,9 +259,12 @@ export async function saveEnrichmentLog(
   statementId: string,
   summary: string
 ): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
   const { error } = await supabase
     .from('enrichment_logs')
-    .insert({ statement_id: statementId, enrichment_summary: summary });
+    .insert({ statement_id: statementId, enrichment_summary: summary, user_id: user.id });
 
   if (error) throw error;
 }

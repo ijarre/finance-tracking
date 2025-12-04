@@ -123,9 +123,7 @@ export default function DashboardPage() {
       <div className="max-w-5xl mx-auto space-y-8">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Dashboard
-            </h1>
+            <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground mt-2">
               Your financial overview
             </p>

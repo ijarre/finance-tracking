@@ -5,8 +5,6 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -44,6 +42,13 @@ serve(async (req) => {
     if (!statement_id) {
       throw new Error('statement_id is required');
     }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    // If using service role, user might be null, so we might need to fetch user_id from statement or expect it in body.
+    // But for now, let's assume this is called by a user.
+    // If called by service role (no user), we need another way.
+    // Let's fetch the statement first, it should have user_id now.
+
 
     // 1. Get statement details
     const { data: statement, error: statementError } = await supabase
@@ -139,6 +144,7 @@ serve(async (req) => {
     const transactionsWithFingerprints = await Promise.all(parsedTransactions.map(async t => ({
       ...t,
       statement_id: statement_id,
+      user_id: statement.user_id, // Use user_id from the statement
       source: 'statement',
       fingerprint: await generateFingerprint(t)
     })));

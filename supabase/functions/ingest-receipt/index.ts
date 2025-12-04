@@ -12,10 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+  const authHeader = req.headers.get('Authorization');
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    authHeader ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
 
     const body = await req.json();
     let receipts = [];
@@ -37,9 +38,21 @@ serve(async (req) => {
       errors: [] as any[]
     };
 
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const userId = user?.id; // Might be null if using service role
+
     const processedIds = new Set();
 
     for (const receipt of receipts) {
+      // If no authenticated user, require user_id in receipt object
+      const effectiveUserId = userId || receipt.user_id;
+
+      if (!effectiveUserId) {
+         results.failed++;
+         results.errors.push({ external_id: receipt.external_id, error: 'Missing user_id' });
+         continue;
+      }
+
       const { date, amount, merchant, items, external_id, currency, notes, category } = receipt;
 
       if (!date || !amount || !external_id) {
@@ -108,6 +121,7 @@ serve(async (req) => {
           external_id,
           match_id: matchId,
           status,
+          user_id: effectiveUserId,
           notes: items ? `Items: ${JSON.stringify(items)}\n${notes || ''}` : notes
         });
 
