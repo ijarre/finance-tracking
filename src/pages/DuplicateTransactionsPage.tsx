@@ -98,7 +98,7 @@ export default function DuplicateTransactionsPage() {
               {duplicates.length !== 1 ? "s" : ""} Found
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             {isLoading ? (
               <div className="text-center py-8">Loading...</div>
             ) : duplicates.length === 0 ? (

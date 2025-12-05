@@ -159,7 +159,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
           transactions)
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="p-6 space-y-4">
         {/* Filters and Sort Controls */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-muted/30 rounded-lg">
           {/* Search */}

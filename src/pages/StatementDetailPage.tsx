@@ -397,7 +397,7 @@ If no transactions can be enriched, return:
               <CardHeader>
                 <CardTitle>Enrich Transaction Data</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="p-6 space-y-6">
                 <MultipleFileUploader
                   label="Reference Documents"
                   files={referenceFiles}
@@ -436,7 +436,7 @@ If no transactions can be enriched, return:
                 <CardHeader>
                   <CardTitle>Enrichment History</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                   <div className="space-y-3">
                     {enrichmentLogs.map((log) => (
                       <div

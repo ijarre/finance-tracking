@@ -172,7 +172,7 @@ export default function TransactionListPage() {
               />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             {isLoading ? (
               <div className="text-center py-8">Loading transactions...</div>
             ) : filteredTransactions.length === 0 ? (

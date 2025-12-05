@@ -4,10 +4,14 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --font-heading: "Outfit", system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -26,88 +30,104 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-tertiary: var(--tertiary);
+  --color-quaternary: var(--quaternary);
+
+  --shadow-hard: 4px 4px 0px 0px var(--color-foreground);
+  --shadow-hard-hover: 6px 6px 0px 0px var(--color-foreground);
+  --shadow-hard-active: 2px 2px 0px 0px var(--color-foreground);
+  --shadow-hard-soft: 8px 8px 0px 0px #e2e8f0;
+  --shadow-hard-focus: 4px 4px 0px 0px var(--color-accent);
+
+  --animate-wiggle: wiggle 1s ease-in-out infinite;
+  --animate-pop: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: rotate(-3deg);
+    }
+    50% {
+      transform: rotate(3deg);
+    }
+  }
+  @keyframes pop {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #fffdf5; /* Warm Cream */
+  --foreground: #1e293b; /* Slate 800 */
+
+  --card: #ffffff;
+  --card-foreground: #1e293b;
+
+  --popover: #ffffff;
+  --popover-foreground: #1e293b;
+
+  --primary: #8b5cf6; /* Vivid Violet */
+  --primary-foreground: #ffffff;
+
+  --secondary: #f472b6; /* Hot Pink */
+  --secondary-foreground: #1e293b;
+
+  --tertiary: #fbbf24; /* Amber/Yellow */
+  --quaternary: #34d399; /* Emerald/Mint */
+
+  --muted: #f1f5f9; /* Slate 100 */
+  --muted-foreground: #64748b; /* Slate 500 */
+
+  --accent: #8b5cf6;
+  --accent-foreground: #ffffff;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border: #e2e8f0; /* Slate 200 */
+  --input: #ffffff;
+  --ring: #8b5cf6;
+
+  --radius: 1rem;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Dark mode mapping - keeping it simple for now, mostly inverting or using dark slate */
+  --background: #0f172a; /* Slate 900 */
+  --foreground: #f8fafc; /* Slate 50 */
+
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+
+  --popover: #1e293b;
+  --popover-foreground: #f8fafc;
+
+  --primary: #a78bfa; /* Lighter Violet */
+  --primary-foreground: #ffffff;
+
+  --secondary: #f472b6;
+  --secondary-foreground: #ffffff;
+
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+
+  --accent: #a78bfa;
+  --accent-foreground: #ffffff;
+
+  --destructive: #7f1d1d;
+  --destructive-foreground: #f8fafc;
+
+  --border: #334155;
+  --input: #1e293b;
+  --ring: #a78bfa;
 }
 
 @layer base {
@@ -115,6 +135,16 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body;
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading font-bold;
   }
 }
