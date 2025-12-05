@@ -197,7 +197,12 @@ export default function DashboardPage() {
               <div className="text-2xl font-bold text-red-600">
                 {formatCurrency(summary.expense)}
               </div>
-              <p className="text-xs text-muted-foreground">Excl. Transfers</p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(year, month - 1).toLocaleString("default", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
             </CardContent>
           </Card>
           <Card>
