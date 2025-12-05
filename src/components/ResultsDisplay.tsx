@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface Transaction {
   id?: string;
@@ -61,10 +62,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
     return (
       <Card className="bg-background/60 backdrop-blur-sm border-primary/20">
         <CardContent className="flex flex-col items-center justify-center py-12">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="mt-4 text-muted-foreground font-medium">
-            Processing with Gemini...
-          </p>
+          <LoadingState text="Processing with Gemini..." />
         </CardContent>
       </Card>
     );

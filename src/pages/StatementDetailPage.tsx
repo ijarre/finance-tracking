@@ -12,6 +12,7 @@ import MultipleFileUploader, {
   type NamedFile,
 } from "@/components/MultipleFileUploader";
 import ResultsDisplay from "@/components/ResultsDisplay";
+import { LoadingState } from "@/components/ui/loading-state";
 import {
   getStatement,
   getTransactions,
@@ -295,7 +296,7 @@ If no transactions can be enriched, return:
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background text-foreground p-8 font-sans flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <LoadingState text="Loading statement details..." />
       </div>
     );
   }
@@ -379,11 +380,8 @@ If no transactions can be enriched, return:
         ) : statement.status === "processing" ? (
           <Card className="bg-background/60 backdrop-blur-sm">
             <CardContent className="py-12 text-center">
-              <Loader2 className="h-16 w-16 mx-auto text-primary animate-spin mb-4" />
-              <h3 className="text-xl font-semibold mb-2">
-                Processing Statement...
-              </h3>
-              <p className="text-muted-foreground">
+              <LoadingState text="Processing Statement..." />
+              <p className="text-muted-foreground mt-4">
                 This may take a few moments. You can navigate away and come back
                 later.
               </p>

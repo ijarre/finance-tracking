@@ -10,6 +10,7 @@ import {
   deleteTransaction,
   type Transaction,
 } from "@/lib/api";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export default function DuplicateTransactionsPage() {
   const navigate = useNavigate();
@@ -100,7 +101,7 @@ export default function DuplicateTransactionsPage() {
           </CardHeader>
           <CardContent className="p-6">
             {isLoading ? (
-              <div className="text-center py-8">Loading...</div>
+              <LoadingState text="Scanning for duplicates..." />
             ) : duplicates.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No duplicate transactions found.

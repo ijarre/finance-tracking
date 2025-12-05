@@ -22,6 +22,7 @@ import {
 import { getTransactionsByDateRange, type Transaction } from "@/lib/api";
 import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { useTimePeriod } from "@/hooks/useTimePeriod";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -294,12 +295,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-                <p className="text-muted-foreground font-medium">
-                  Loading your data...
-                </p>
-              </div>
+              <LoadingState text="Loading your financial data..." />
             ) : filteredTransactions.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <p className="text-lg font-medium">No transactions found</p>

@@ -19,6 +19,7 @@ import {
 import { MonthYearPicker } from "@/components/MonthYearPicker";
 import { useTimePeriod } from "@/hooks/useTimePeriod";
 import { EditTransactionDialog } from "@/components/EditTransactionDialog";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export default function TransactionListPage() {
   const navigate = useNavigate();
@@ -174,7 +175,7 @@ export default function TransactionListPage() {
           </CardHeader>
           <CardContent className="p-6">
             {isLoading ? (
-              <div className="text-center py-8">Loading transactions...</div>
+              <LoadingState text="Loading transactions..." />
             ) : filteredTransactions.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No transactions found for this period matching your filters.
