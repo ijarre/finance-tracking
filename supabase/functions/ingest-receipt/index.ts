@@ -15,9 +15,8 @@ serve(async (req) => {
   const authHeader = req.headers.get('Authorization');
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
-    authHeader ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
-
     const body = await req.json();
     let receipts = [];
 
@@ -132,7 +131,8 @@ serve(async (req) => {
         results.success++;
       }
     }
-
+    
+    
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
