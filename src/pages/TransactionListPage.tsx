@@ -16,14 +16,16 @@ import {
   type Transaction,
   updateTransaction,
 } from "@/lib/api";
-import { MonthYearPicker } from "@/components/MonthYearPicker";
+import { format } from "date-fns";
+import { DateRangePicker } from "@/components/DateRangePicker";
 import { useTimePeriod } from "@/hooks/useTimePeriod";
-import { EditTransactionDialog } from "@/components/EditTransactionDialog";
 import { LoadingState } from "@/components/ui/loading-state";
+import { EditTransactionDialog } from "@/components/EditTransactionDialog";
 
+// ... inside component ...
 export default function TransactionListPage() {
   const navigate = useNavigate();
-  const { month, year, setTimePeriod, getTimePeriodSearchParams } =
+  const { dateRange, setDateRange, getTimePeriodSearchParams } =
     useTimePeriod();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -35,43 +37,18 @@ export default function TransactionListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
+  // ...
 
   useEffect(() => {
     loadTransactions();
-  }, [month, year]);
+  }, [dateRange]);
 
   useEffect(() => {
     filterTransactions();
   }, [transactions, filterType, searchQuery]);
 
-  const loadTransactions = async () => {
-    try {
-      setIsLoading(true);
-
-      const startDate = new Date(year, month - 1, 1).toISOString();
-      const endDate = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
-
-      const allTransactions = await getTransactionsByDateRange(
-        startDate,
-        endDate
-      );
-
-      // Sort by date desc
-      allTransactions.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-      setTransactions(allTransactions);
-    } catch (error) {
-      console.error("Error loading transactions:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const filterTransactions = () => {
     let result = [...transactions];
-
-    // Date filtering is handled by API now
 
     if (filterType !== "all") {
       result = result.filter((t) => t.type === filterType);
@@ -117,6 +94,36 @@ export default function TransactionListPage() {
     }).format(amount);
   };
 
+  // ...
+
+  const loadTransactions = async () => {
+    try {
+      setIsLoading(true);
+
+      if (!dateRange?.from || !dateRange?.to) return;
+
+      const startDate = format(dateRange.from, "yyyy-MM-dd");
+      const endDate = format(dateRange.to, "yyyy-MM-dd");
+
+      const allTransactions = await getTransactionsByDateRange(
+        startDate,
+        endDate
+      );
+
+      // Sort by date desc
+      allTransactions.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      setTransactions(allTransactions);
+    } catch (error) {
+      console.error("Error loading transactions:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ...
+
   return (
     <div className="min-h-screen bg-background text-foreground p-8 font-sans">
       <div className="max-w-5xl mx-auto space-y-8">
@@ -139,12 +146,7 @@ export default function TransactionListPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <MonthYearPicker
-              selectedMonth={month - 1}
-              selectedYear={year}
-              onMonthChange={(m) => setTimePeriod(m + 1, year)}
-              onYearChange={(y) => setTimePeriod(month, y)}
-            />
+            <DateRangePicker date={dateRange} setDate={setDateRange} />
           </div>
         </header>
 

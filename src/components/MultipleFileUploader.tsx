@@ -61,10 +61,8 @@ const MultipleFileUploader: React.FC<MultipleFileUploaderProps> = ({
 
   return (
     <Card className="bg-background/60 backdrop-blur-sm">
-      <CardContent className="pt-6">
-        <Label className="mb-2 block text-accent-foreground font-semibold">
-          {label}
-        </Label>
+      <CardContent className="">
+        {label && <Label className="">{label}</Label>}
 
         <div className="space-y-3">
           {files.map((namedFile) => (

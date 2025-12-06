@@ -66,7 +66,7 @@ serve(async (req) => {
     if (!statement.bank_statement_url) {
       throw new Error('No bank statement file found');
     }
-
+    console.log(`Processing statement: ${statement_id}`);
     // 2. Download file from Storage
     const { data: fileData, error: downloadError } = await supabase
       .storage
@@ -79,9 +79,20 @@ serve(async (req) => {
 
     // Convert Blob to Base64
     const arrayBuffer = await fileData.arrayBuffer();
-    const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-    const mimeType = fileData.type;
+    
+    // Fix: Process in chunks to avoid "Maximum call stack size exceeded"
+    const uint8Array = new Uint8Array(arrayBuffer);
+    let binaryString = "";
+    const CHUNK_SIZE = 8192;
 
+    for (let i = 0; i < uint8Array.length; i += CHUNK_SIZE) {
+      const chunk = uint8Array.subarray(i, i + CHUNK_SIZE);
+      binaryString += String.fromCharCode(...chunk);
+    }
+
+    const base64Data = btoa(binaryString);
+    const mimeType = fileData.type;
+    console.log(`File processing complete. Type: ${mimeType}, Size: ${arrayBuffer.byteLength} bytes`);
     // 3. Call Gemini API
     const parts: any[] = [
       { text: EXTRACTION_PROMPT },
@@ -92,7 +103,7 @@ serve(async (req) => {
         },
       },
     ];
-
+    console.log('Calling Gemini API...');
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -105,14 +116,13 @@ serve(async (req) => {
         }),
       }
     );
-
+    console.log(`Gemini API responded. Status: ${response.status}`);
     const data = await response.json();
     const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    console.log({responseText})
     if (!responseText) {
       throw new Error('No response from Gemini API');
     }
-
+    // console.log({responseText}) // Uncomment for debugging raw response
     // 4. Parse JSON response
     let parsedTransactions: any[] = [];
     try {

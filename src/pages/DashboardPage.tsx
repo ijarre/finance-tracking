@@ -20,13 +20,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getTransactionsByDateRange, type Transaction } from "@/lib/api";
-import { MonthYearPicker } from "@/components/MonthYearPicker";
+import { format } from "date-fns";
+import { DateRangePicker } from "@/components/DateRangePicker";
 import { useTimePeriod } from "@/hooks/useTimePeriod";
 import { LoadingState } from "@/components/ui/loading-state";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { month, year, setTimePeriod, getTimePeriodSearchParams } =
+  const { dateRange, setDateRange, getTimePeriodSearchParams } =
     useTimePeriod();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -44,7 +45,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData();
-  }, [month, year]);
+  }, [dateRange]);
 
   useEffect(() => {
     calculateSummary();
@@ -55,8 +56,10 @@ export default function DashboardPage() {
     try {
       setIsLoading(true);
 
-      const startDate = new Date(year, month - 1, 1).toISOString();
-      const endDate = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+      if (!dateRange?.from || !dateRange?.to) return;
+
+      const startDate = format(dateRange.from, "yyyy-MM-dd");
+      const endDate = format(dateRange.to, "yyyy-MM-dd");
 
       const transactions = await getTransactionsByDateRange(startDate, endDate);
       setAllTransactions(transactions);
@@ -179,13 +182,8 @@ export default function DashboardPage() {
                 Audit
               </Button>
             </div>
-            <div className="bg-white p-2 rounded-xl border-2 border-foreground shadow-hard-soft">
-              <MonthYearPicker
-                selectedMonth={month - 1}
-                selectedYear={year}
-                onMonthChange={(m) => setTimePeriod(m + 1, year)}
-                onYearChange={(y) => setTimePeriod(month, y)}
-              />
+            <div className="">
+              <DateRangePicker date={dateRange} setDate={setDateRange} />
             </div>
           </div>
         </header>
@@ -206,10 +204,8 @@ export default function DashboardPage() {
                 {formatCurrency(summary.income)}
               </div>
               <p className="text-xs text-muted-foreground mt-1 font-medium">
-                {new Date(year, month - 1).toLocaleString("default", {
-                  month: "long",
-                  year: "numeric",
-                })}
+                {dateRange?.from ? format(dateRange.from, "LLL dd, y") : "..."}{" "}
+                - {dateRange?.to ? format(dateRange.to, "LLL dd, y") : "..."}
               </p>
             </CardContent>
           </Card>
@@ -228,10 +224,8 @@ export default function DashboardPage() {
                 {formatCurrency(summary.expense)}
               </div>
               <p className="text-xs text-muted-foreground mt-1 font-medium">
-                {new Date(year, month - 1).toLocaleString("default", {
-                  month: "long",
-                  year: "numeric",
-                })}
+                {dateRange?.from ? format(dateRange.from, "LLL dd, y") : "..."}{" "}
+                - {dateRange?.to ? format(dateRange.to, "LLL dd, y") : "..."}
               </p>
             </CardContent>
           </Card>
@@ -254,10 +248,8 @@ export default function DashboardPage() {
                 {formatCurrency(summary.balance)}
               </div>
               <p className="text-xs text-muted-foreground mt-1 font-medium">
-                {new Date(year, month - 1).toLocaleString("default", {
-                  month: "long",
-                  year: "numeric",
-                })}
+                {dateRange?.from ? format(dateRange.from, "LLL dd, y") : "..."}{" "}
+                - {dateRange?.to ? format(dateRange.to, "LLL dd, y") : "..."}
               </p>
             </CardContent>
           </Card>

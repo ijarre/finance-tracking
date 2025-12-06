@@ -221,8 +221,8 @@ Return the result as a JSON array of transaction objects. Ensure all transaction
     <div className="min-h-screen bg-background text-foreground p-8 font-sans">
       <div className="max-w-5xl mx-auto space-y-8">
         <header className="text-center space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight text-primary">
-            Finance Parser
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">
+            Ceban Pertama
           </h1>
         </header>
 
@@ -240,7 +240,7 @@ Return the result as a JSON array of transaction objects. Ensure all transaction
           />
 
           <Card className="bg-background/60 backdrop-blur-sm">
-            <CardContent className="pt-6">
+            <CardContent className="">
               <div className="flex flex-col w-full gap-6">
                 <Label
                   htmlFor="remarks"

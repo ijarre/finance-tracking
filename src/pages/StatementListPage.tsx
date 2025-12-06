@@ -97,8 +97,8 @@ function StatementListPage() {
       <div className="max-w-5xl mx-auto space-y-8">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Finance Parser
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">
+              Statement List
             </h1>
             <p className="text-muted-foreground mt-2">
               Manage your bank statements
@@ -165,10 +165,20 @@ function StatementListPage() {
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
                           statement.status === "parsed"
                             ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                            : statement.status === "processing"
+                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            : statement.status === "failed"
+                            ? "bg-red-500/10 text-red-600 dark:text-red-400"
                             : "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
                         }`}
                       >
-                        {statement.status === "parsed" ? "Parsed" : "Draft"}
+                        {statement.status === "parsed"
+                          ? "Parsed"
+                          : statement.status === "processing"
+                          ? "Processing..."
+                          : statement.status === "failed"
+                          ? "Failed"
+                          : "Draft"}
                       </span>
                       <Button
                         variant="ghost"
