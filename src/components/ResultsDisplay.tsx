@@ -27,19 +27,7 @@ import {
 } from "@/components/ui/table";
 import { LoadingState } from "@/components/ui/loading-state";
 
-interface Transaction {
-  id?: string;
-  date: string;
-  amount: string | number;
-  currency: string;
-  merchant: string | null;
-  transaction_name: string;
-  reference_id: string | null;
-  category: string;
-  type: "expense" | "income" | "transfer";
-  notes: string;
-  status?: "pending" | "verified" | "duplicate";
-}
+import { type Transaction } from "@/lib/api";
 
 interface ResultsDisplayProps {
   results: Transaction[] | null;
@@ -186,6 +174,12 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 <SelectItem value="expense">Expense</SelectItem>
                 <SelectItem value="income">Income</SelectItem>
                 <SelectItem value="transfer">Transfer</SelectItem>
+                <SelectItem value="external_transfer">
+                  External Transfer
+                </SelectItem>
+                <SelectItem value="internal_transfer">
+                  Internal Transfer
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -340,7 +334,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                       <TableCell className="text-sm">
                         <span
                           className={`px-2 py-1 rounded-md text-xs font-medium ${
-                            transaction.type === "expense"
+                            transaction.type === "expense" ||
+                            transaction.type === "external_transfer"
                               ? "bg-red-500/10 text-red-600 dark:text-red-400"
                               : transaction.type === "income"
                               ? "bg-green-500/10 text-green-600 dark:text-green-400"

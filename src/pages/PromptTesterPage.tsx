@@ -14,17 +14,7 @@ import { useAlertDialog } from "@/hooks/useAlertDialog";
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
-interface Transaction {
-  date: string;
-  amount: string | number;
-  currency: string;
-  merchant: string | null;
-  transaction_name: string;
-  reference_id: string | null;
-  category: string;
-  type: "expense" | "income" | "transfer";
-  notes: string;
-}
+import { type Transaction } from "@/lib/api";
 
 function PromptTesterPage() {
   const { alertState, showAlert, hideAlert } = useAlertDialog();
@@ -37,7 +27,7 @@ function PromptTesterPage() {
 - transaction_name: Name/description of the transaction
 - reference_id: Reference or transaction ID (null if not available)
 - category: Transaction category (e.g., Food, Transport, Shopping, etc.)
-- type: Transaction type - "expense" for debit transactions (contains 'DB' or represents money going out) or "income" for credit transactions (contains 'CR' or represents money coming in)
+- type: Transaction type - "expense", "income", "internal_transfer", or "external_transfer"
 - notes: Additional notes or details about the transaction
 
 Return the result as a JSON array of transaction objects. Ensure all transactions are captured from the statement.`;
