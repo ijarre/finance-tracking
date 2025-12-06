@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -92,7 +93,13 @@ export default function LoginPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : isSignUp ? "Sign Up" : "Login"}
+              {loading ? (
+                <LoadingState text="Loading..." />
+              ) : isSignUp ? (
+                "Sign Up"
+              ) : (
+                "Login"
+              )}
             </Button>
             <div className="text-center text-sm">
               <span className="text-gray-500">
