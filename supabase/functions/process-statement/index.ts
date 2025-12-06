@@ -19,8 +19,7 @@ const EXTRACTION_PROMPT = `Extract ALL transactions from the bank statement imag
 - transaction_name: Name/description of the transaction
 - reference_id: Reference or transaction ID (null if not available)
 - category: Transaction category (e.g., Food, Transport, Shopping, etc.)
-- type: Transaction type - "expense" for debit transactions (contains 'DB' or represents money going out), "income" for credit transactions (contains 'CR' or represents money coming in), or "transfer" for internal transfers (e.g. credit card payments, moving money between own accounts)
-- notes: Additional notes or details about the transaction
+- type: Transaction type - "expense" for debit transactions, "income" for credit transactions, "internal_transfer" for transfers between own accounts (e.g. credit card payments, moving money), or "external_transfer" for transfers to others/merchants. If unsure whether a transfer is internal or external, classify it as "external_transfer".
 
 Return the result as a JSON array of transaction objects. Ensure all transactions are captured from the statement.`;
 

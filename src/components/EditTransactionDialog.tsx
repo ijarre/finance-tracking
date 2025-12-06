@@ -144,7 +144,12 @@ export function EditTransactionDialog({
               <SelectContent>
                 <SelectItem value="expense">Expense</SelectItem>
                 <SelectItem value="income">Income</SelectItem>
-                <SelectItem value="transfer">Transfer</SelectItem>
+                <SelectItem value="external_transfer">
+                  External Transfer
+                </SelectItem>
+                <SelectItem value="internal_transfer">
+                  Internal Transfer
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>

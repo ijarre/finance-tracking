@@ -20,7 +20,7 @@ export interface Transaction {
   transaction_name: string;
   reference_id: string | null;
   category: string;
-  type: 'expense' | 'income' | 'transfer';
+  type: 'expense' | 'income' | 'internal_transfer' | 'external_transfer';
   notes: string;
   created_at?: string;
   updated_at?: string;

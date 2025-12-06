@@ -52,7 +52,7 @@ serve(async (req) => {
          continue;
       }
 
-      const { date, amount, merchant, items, external_id, currency, notes, category } = receipt;
+      const { date, amount, merchant, items, external_id, currency, notes, category, type } = receipt;
 
       if (!date || !amount || !external_id) {
         results.failed++;
@@ -115,7 +115,7 @@ serve(async (req) => {
           merchant,
           transaction_name: merchant || 'Receipt',
           category: category || 'Uncategorized',
-          type: 'expense',
+          type: type || 'expense',
           source: 'receipt',
           external_id,
           match_id: matchId,

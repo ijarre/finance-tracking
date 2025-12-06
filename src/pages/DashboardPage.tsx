@@ -74,9 +74,10 @@ export default function DashboardPage() {
     allTransactions.forEach((t) => {
       if (t.type === "income") {
         income += t.amount;
-      } else if (t.type === "expense") {
+      } else if (t.type === "expense" || t.type === "external_transfer") {
         expense += t.amount;
       }
+      // internal_transfer is excluded from summary
     });
 
     setSummary({
@@ -90,6 +91,12 @@ export default function DashboardPage() {
     let result = [...allTransactions];
 
     if (filterType !== "all") {
+      if (filterType === "transfer") {
+        // Show both transfer types for legacy "transfer" filter behavior, or specific?
+        // Let's allow specific filtering if needed, but for now let's map 'transfer' filter to both or just specific?
+        // The UI select below has 'transfer', let's update it to allow specific or just group them.
+        // User wanted differentiation. Let's update the filter dropdown first.
+      }
       result = result.filter((t) => t.type === filterType);
     }
 
@@ -280,7 +287,12 @@ export default function DashboardPage() {
                       <SelectItem value="all">All Types</SelectItem>
                       <SelectItem value="expense">Expense</SelectItem>
                       <SelectItem value="income">Income</SelectItem>
-                      <SelectItem value="transfer">Transfer</SelectItem>
+                      <SelectItem value="external_transfer">
+                        External Transfer
+                      </SelectItem>
+                      <SelectItem value="internal_transfer">
+                        Internal Transfer
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -315,17 +327,19 @@ export default function DashboardPage() {
                         className={`w-10 h-10 rounded-full border-2 border-foreground flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform ${
                           t.type === "income"
                             ? "bg-green-100"
-                            : t.type === "expense"
+                            : t.type === "expense" ||
+                              t.type === "external_transfer"
                             ? "bg-red-100"
-                            : "bg-blue-100"
+                            : "bg-slate-100" // Internal transfer
                         }`}
                       >
                         {t.type === "income" ? (
                           <ArrowUpCircle className="w-5 h-5 text-green-600" />
-                        ) : t.type === "expense" ? (
+                        ) : t.type === "expense" ||
+                          t.type === "external_transfer" ? (
                           <ArrowDownCircle className="w-5 h-5 text-red-600" />
                         ) : (
-                          <Wallet className="w-5 h-5 text-blue-600" />
+                          <Wallet className="w-5 h-5 text-slate-600" />
                         )}
                       </div>
                       <div className="space-y-1">
@@ -337,9 +351,12 @@ export default function DashboardPage() {
                           <span className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-xs">
                             {t.category}
                           </span>
-                          {t.type === "transfer" && (
+                          {(t.type === "internal_transfer" ||
+                            t.type === "external_transfer") && (
                             <span className="ml-2 px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200 text-xs">
-                              Transfer
+                              {t.type === "internal_transfer"
+                                ? "Internal"
+                                : "External"}
                             </span>
                           )}
                         </p>
@@ -349,12 +366,17 @@ export default function DashboardPage() {
                       className={`font-bold text-lg whitespace-nowrap ${
                         t.type === "income"
                           ? "text-green-600"
-                          : t.type === "expense"
+                          : t.type === "expense" ||
+                            t.type === "external_transfer"
                           ? "text-red-600"
-                          : "text-blue-600"
+                          : "text-slate-600" // Internal transfer
                       }`}
                     >
-                      {t.type === "income" ? "+" : "-"}
+                      {t.type === "income"
+                        ? "+"
+                        : t.type === "internal_transfer"
+                        ? ""
+                        : "-"}
                       {formatCurrency(t.amount)}
                     </div>
                   </div>

@@ -161,7 +161,12 @@ export default function TransactionListPage() {
                     <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="expense">Expense</SelectItem>
                     <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="transfer">Transfer</SelectItem>
+                    <SelectItem value="external_transfer">
+                      External Transfer
+                    </SelectItem>
+                    <SelectItem value="internal_transfer">
+                      Internal Transfer
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -196,6 +201,14 @@ export default function TransactionListPage() {
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {new Date(t.date).toLocaleDateString()} • {t.category}
+                        {(t.type === "internal_transfer" ||
+                          t.type === "external_transfer") && (
+                          <span className="ml-2 px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200 text-xs">
+                            {t.type === "internal_transfer"
+                              ? "Internal"
+                              : "External"}
+                          </span>
+                        )}
                       </p>
                       {t.notes && (
                         <p className="text-xs text-muted-foreground italic">
@@ -209,12 +222,17 @@ export default function TransactionListPage() {
                         className={`font-medium min-w-[140px] whitespace-nowrap text-right hidden md:block ${
                           t.type === "income"
                             ? "text-green-600"
-                            : t.type === "expense"
+                            : t.type === "expense" ||
+                              t.type === "external_transfer"
                             ? "text-red-600"
-                            : "text-blue-600"
+                            : "text-slate-600" // Internal transfer
                         }`}
                       >
-                        {t.type === "income" ? "+" : "-"}
+                        {t.type === "income"
+                          ? "+"
+                          : t.type === "internal_transfer"
+                          ? ""
+                          : "-"}
                         {formatCurrency(t.amount)}
                       </div>
 
